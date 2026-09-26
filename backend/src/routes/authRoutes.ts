@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { supabase } from "../supabase";
 
 const router = express.Router();
+
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -24,7 +25,6 @@ router.post("/login", async (req, res) => {
 
     if (userError) {
       console.error(userError);
-
       return res.status(500).json({
         message: "Unable to check account.",
       });
@@ -51,49 +51,51 @@ router.post("/login", async (req, res) => {
     }
 
     // Login successful
-   const jwtSecret = process.env.JWT_SECRET;
+    const jwtSecret = process.env.JWT_SECRET;
 
-if (!jwtSecret) {
-  return res.status(500).json({
-    message: "Authentication configuration is missing.",
-  });
-}
+    if (!jwtSecret) {
+      return res.status(500).json({
+        message: "Authentication configuration is missing.",
+      });
+    }
 
-const token = jwt.sign(
-  {
-    id: user.id,
-    email: user.email,
-    username: user.username,
-  },
-  jwtSecret,
-  {
-    expiresIn: "1d",
-  }
-);
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+      },
+      jwtSecret,
+      {
+        expiresIn: "1d",
+      }
+    );
 
-res.cookie("auth_token", token, {
-  httpOnly: true,
-  secure: false,
-  sameSite: "lax",
-  maxAge: 24 * 60 * 60 * 1000,
-});
+    const isProduction = process.env.NODE_ENV === "production";
 
-return res.status(200).json({
-  message: "Login successful!",
-  user: {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-  },
-});
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      message: "Login successful!",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      },
+    });
   } catch (error) {
     console.error("Login error:", error);
-
     return res.status(500).json({
       message: "Something went wrong.",
     });
   }
 });
+
 router.post("/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -129,7 +131,6 @@ router.post("/register", async (req, res) => {
 
     if (existingUserError) {
       console.error(existingUserError);
-
       return res.status(500).json({
         message: "Unable to check account.",
       });
@@ -159,7 +160,6 @@ router.post("/register", async (req, res) => {
 
     if (insertError) {
       console.error(insertError);
-
       return res.status(500).json({
         message: "Unable to create account.",
       });
@@ -171,7 +171,6 @@ router.post("/register", async (req, res) => {
     });
   } catch (error) {
     console.error("Registration error:", error);
-
     return res.status(500).json({
       message: "Something went wrong.",
     });
@@ -209,15 +208,20 @@ router.get("/me", async (req, res) => {
     });
   }
 });
+
 router.post("/logout", (req, res) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
   res.clearCookie("auth_token", {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
   });
 
   return res.status(200).json({
     message: "Logged out successfully.",
   });
 });
+
 export default router;
+
