@@ -6,9 +6,12 @@ import authRoutes from "./routes/authRoutes";
 
 const app = express();
 
+const frontendUrl =
+  process.env.FRONTEND_URL || "http://localhost:3000";
+
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: frontendUrl,
     credentials: true,
   })
 );
